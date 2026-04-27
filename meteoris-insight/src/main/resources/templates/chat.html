@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Chat — Meteoris Insight</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <th:block th:replace="~{fragments/main :: commonStyles}"/>
+</head>
+<body>
+<header th:replace="~{fragments/main :: siteHeader(profiles=${profiles})}"></header>
+<main>
+    <h1>Chat</h1>
+    <p>Session id: <span th:text="${sessionId}">-</span></p>
+    <form th:action="@{/chat}" method="post">
+        <input type="hidden" name="sessionId" th:value="${sessionId}"/>
+        <label for="message">Message</label>
+        <textarea id="message" name="message" required></textarea>
+        <p><button type="submit">Send</button></p>
+    </form>
+    <div th:if="${reply != null}">
+        <h2>Reply</h2>
+        <pre th:text="${reply}"></pre>
+    </div>
+    <form th:action="@{/chat}" method="post" style="margin-top: 16px;">
+        <input type="hidden" name="message" value="ASKUSER"/>
+        <input type="hidden" name="sessionId" th:value="${sessionId}"/>
+        <button type="submit">Demo: trigger AskUser</button>
+    </form>
+    <form th:action="@{/chat}" method="post" style="margin-top: 16px;">
+        <input type="hidden" name="action" value="NEW_SESSION"/>
+        <input type="hidden" name="sessionId" th:value="${sessionId}"/>
+        <button type="submit">New chat session</button>
+    </form>
+    <aside th:replace="~{fragments/main :: todoPanel(todos=${todos})}"></aside>
+</main>
+</body>
+</html>

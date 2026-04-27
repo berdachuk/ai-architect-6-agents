@@ -1,0 +1,5 @@
+meteoris:
+  eval:
+    cli:
+      exit-jvm: false
+      skip-exit: true

@@ -1,0 +1,8 @@
+spring:
+  main:
+    web-application-type: none
+
+meteoris:
+  eval:
+    cli:
+      exit-jvm: true

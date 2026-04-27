@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<th:block th:fragment="commonStyles">
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 0; background: #0b1220; color: #e8eefc; }
+        header { padding: 12px 20px; background: #111a2e; border-bottom: 1px solid #223055; }
+        main { padding: 20px; max-width: 960px; margin: 0 auto; }
+        .disclaimer { background: #1b2742; border: 1px solid #2c3d63; padding: 10px 12px; border-radius: 8px; margin: 12px 0; font-size: 0.95rem; }
+        nav a { color: #9bd0ff; margin-right: 14px; text-decoration: none; }
+        .todo-panel { background: #141f36; border: 1px solid #2c3d63; border-radius: 8px; padding: 12px 14px; margin-top: 16px; font-size: 0.95rem; }
+        .todo-panel ul { margin: 8px 0 0 18px; }
+        textarea { width: 100%; min-height: 120px; border-radius: 8px; border: 1px solid #2c3d63; background: #0f172a; color: #e8eefc; padding: 10px; }
+        button { background: #2563eb; color: white; border: 0; padding: 10px 16px; border-radius: 8px; cursor: pointer; }
+        pre { white-space: pre-wrap; background: #0f172a; border: 1px solid #223055; padding: 12px; border-radius: 8px; max-width: 100%; overflow-x: auto; }
+    </style>
+</th:block>
+<header th:fragment="siteHeader(profiles)">
+    <nav>
+        <a th:href="@{/}">Home</a>
+        <a th:href="@{/chat}">Chat</a>
+        <a th:href="@{/evaluation}">Evaluation</a>
+    </nav>
+    <div class="disclaimer">
+        <strong>Demo disclaimer:</strong> outputs are not professional weather, news, financial, or legal advice.
+        <div th:if="${profiles != null}">Active profiles: <span th:text="${profiles}">stub-ai</span></div>
+    </div>
+</header>
+<aside th:fragment="todoPanel(todos)" class="todo-panel" th:if="${todos != null && !todos.isEmpty()}">
+    <strong>Todos</strong> (session-scoped demo)
+    <ul>
+        <li th:each="item : ${todos}" th:text="${item}">item</li>
+    </ul>
+</aside>
+</html>

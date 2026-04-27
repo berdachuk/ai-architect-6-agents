@@ -1,0 +1,10 @@
+# Used with active profile "test-pgvector" + Testcontainers Postgres (pgvector image).
+# Datasource URL/credentials come from @ServiceConnection — METEORIS_DB_* vars are ignored here.
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/migration-postgresql
+
+meteoris:
+  news:
+    embedding:
+      enabled: true

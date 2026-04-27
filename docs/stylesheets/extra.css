@@ -1,0 +1,29 @@
+/* Custom styles for full-width content in MkDocs Material theme */
+
+.md-main__inner {
+    max-width: 100% !important;
+}
+
+.md-content {
+    max-width: 100% !important;
+}
+
+.md-content__inner {
+    max-width: 100% !important;
+}
+
+.md-grid {
+    max-width: 100% !important;
+}
+
+.md-typeset {
+    max-width: 100% !important;
+}
+
+.md-typeset table {
+    width: 100%;
+}
+
+.md-typeset pre {
+    width: 100%;
+}

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Meteoris Insight</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <th:block th:replace="~{fragments/main :: commonStyles}"/>
+</head>
+<body>
+<header th:replace="~{fragments/main :: siteHeader(profiles=${profiles})}"></header>
+<main>
+    <h1>Meteoris Insight</h1>
+    <p>English-first agentic assistant for weather and news (course demo).</p>
+    <p><a th:href="@{/chat}">Go to chat</a></p>
+</main>
+</body>
+</html>

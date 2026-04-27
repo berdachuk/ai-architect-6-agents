@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>AskUser — Meteoris Insight</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <th:block th:replace="~{fragments/main :: commonStyles}"/>
+</head>
+<body>
+<header th:replace="~{fragments/main :: siteHeader(profiles=${profiles})}"></header>
+<main>
+    <h1>AskUser</h1>
+    <p th:text="${prompt}">Question</p>
+    <form th:action="@{/chat/answer}" method="post">
+        <input type="hidden" name="ticketId" th:value="${ticketId}"/>
+        <input type="hidden" name="sessionId" th:value="${sessionId}"/>
+        <div th:if="${options != null}">
+            <div th:each="o : ${options}">
+                <label>
+                    <input type="checkbox" name="selectedOptionIds" th:value="${o.id()}"/>
+                    <span th:text="${o.label()}">Option</span>
+                </label>
+                <br/>
+            </div>
+        </div>
+        <p><label>Free text <input type="text" name="freeText"/></label></p>
+        <button type="submit">Submit answer</button>
+    </form>
+    <aside th:replace="~{fragments/main :: todoPanel(todos=${todos})}"></aside>
+</main>
+</body>
+</html>

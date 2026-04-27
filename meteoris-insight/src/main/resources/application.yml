@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: meteoris-insight
+  profiles:
+    default: docker-db
+  mvc:
+    problemdetails:
+      enabled: true
+  ai:
+    openai:
+      enabled: false
+      # Satisfies Spring AI optional OpenAI autoconfiguration beans in CI (never used with stub-ai).
+      api-key: ${OPENAI_API_KEY:local-dev-placeholder}
+    chat:
+      memory:
+        repository:
+          jdbc:
+            initialize-schema: never
+    custom:
+      chat:
+        # Default: local Ollama OpenAI-compatible API. Override with METEORIS_CHAT_BASE_URL or shared OLLAMA_BASE_URL.
+        base-url: ${METEORIS_CHAT_BASE_URL:${OLLAMA_BASE_URL:http://localhost:11434}}
+        api-key: ${METEORIS_CHAT_API_KEY:}
+        completions-path: /v1/chat/completions
+        model: ${METEORIS_CHAT_MODEL:gemma4:31b-cloud}
+        temperature: 0.7
+        max-tokens: 2048
+      embedding:
+        base-url: ${METEORIS_EMBEDDING_BASE_URL:${OLLAMA_BASE_URL:http://localhost:11434}}
+        api-key: ${METEORIS_EMBEDDING_API_KEY:}
+        model: ${METEORIS_EMBEDDING_MODEL:nomic-embed-text}
+        dimensions: ${METEORIS_EMBEDDING_DIMENSIONS:768}
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiImageAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioSpeechAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioTranscriptionAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiModerationAutoConfiguration
+  thymeleaf:
+    cache: false
+  flyway:
+    enabled: true
+
+meteoris:
+  automemory:
+    root: ${METEORIS_AUTOMEMORY_ROOT:${user.home}/.meteoris-insight/automemory}
+
+server:
+  port: ${SERVER_PORT:18443}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+      show-components: always

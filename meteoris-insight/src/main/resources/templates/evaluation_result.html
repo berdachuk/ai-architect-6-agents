@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Evaluation result — Meteoris Insight</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <th:block th:replace="~{fragments/main :: commonStyles}"/>
+</head>
+<body>
+<header th:replace="~{fragments/main :: siteHeader(profiles=${profiles})}"></header>
+<main>
+    <h1>Evaluation result</h1>
+    <p>Dataset: <span th:text="${dataset}">-</span> — profile: <span th:text="${profile}">-</span></p>
+    <pre th:text="${report}">{}</pre>
+</main>
+</body>
+</html>

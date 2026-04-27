@@ -1,0 +1,53 @@
+dataset_id: meteoris-eval
+version: "1.0.0"
+cases:
+  - id: w1
+    type: weather
+    question: "What is the current weather in Brest, Belarus?"
+    expected_city: "Brest"
+    required_fields: ["city", "temperature", "conditions", "time"]
+  - id: n1
+    type: news
+    question: "Latest AI news for today"
+    min_headlines: 3
+    require_source_or_time: false
+  - id: w2
+    type: weather
+    question: "Weather in Minsk today?"
+    expected_city: "Minsk"
+    required_fields: ["city", "temperature", "conditions", "time"]
+  - id: w3
+    type: weather
+    question: "Forecast for Grodno"
+    expected_city: "Grodno"
+    required_fields: ["city", "temperature", "conditions", "time"]
+  - id: w4
+    type: weather
+    question: "What is the weather in Vitebsk?"
+    expected_city: "Vitebsk"
+    required_fields: ["city", "temperature", "conditions", "time"]
+  - id: w5
+    type: weather
+    question: "Current conditions in Gomel"
+    expected_city: "Gomel"
+    required_fields: ["city", "temperature", "conditions", "time"]
+  - id: w6
+    type: weather
+    question: "Weather in Mogilev"
+    expected_city: "Mogilev"
+    required_fields: ["city", "temperature", "conditions", "time"]
+  - id: n2
+    type: news
+    question: "News about climate"
+    min_headlines: 3
+    require_source_or_time: false
+  - id: n3
+    type: news
+    question: "Headlines on space exploration"
+    min_headlines: 3
+    require_source_or_time: false
+  - id: n4
+    type: news
+    question: "Technology sector news"
+    min_headlines: 3
+    require_source_or_time: false

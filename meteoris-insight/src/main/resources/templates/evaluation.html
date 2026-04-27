@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Evaluation — Meteoris Insight</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <th:block th:replace="~{fragments/main :: commonStyles}"/>
+</head>
+<body>
+<header th:replace="~{fragments/main :: siteHeader(profiles=${profiles})}"></header>
+<main>
+    <h1>Run evaluation</h1>
+    <form th:action="@{/evaluation/run}" method="post">
+        <p><label>Dataset <input name="dataset" value="meteoris-eval-v1" required/></label></p>
+        <p><label>Profile <input name="profile" value="stub-ai"/></label></p>
+        <button type="submit">Run</button>
+    </form>
+</main>
+</body>
+</html>

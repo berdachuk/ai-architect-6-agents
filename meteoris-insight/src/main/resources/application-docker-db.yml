@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${METEORIS_DB_HOST:localhost}:${METEORIS_DB_PORT:27432}/${METEORIS_DB_NAME:meteoris}
+    username: ${METEORIS_DB_USER:meteoris}
+    password: ${METEORIS_DB_PASSWORD:meteoris}
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    locations: classpath:db/migration
+
+meteoris:
+  news:
+    embedding:
+      enabled: true

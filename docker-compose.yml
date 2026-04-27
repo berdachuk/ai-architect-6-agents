@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: meteoris-insight-pg
+    environment:
+      POSTGRES_DB: ${METEORIS_DB_NAME:-meteoris}
+      POSTGRES_USER: ${METEORIS_DB_USER:-meteoris}
+      POSTGRES_PASSWORD: ${METEORIS_DB_PASSWORD:-meteoris}
+    ports:
+      - "${METEORIS_DB_PORT:-27432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${METEORIS_DB_USER:-meteoris} -d ${METEORIS_DB_NAME:-meteoris}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

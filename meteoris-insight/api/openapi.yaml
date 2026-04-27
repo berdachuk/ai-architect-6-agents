@@ -1,0 +1,274 @@
+openapi: 3.0.3
+info:
+  title: Meteoris Insight API
+  version: 0.1.0
+  description: Canonical REST contract for Meteoris Insight (/api/**). Error bodies follow RFC 9457 Problem Details (application/problem+json or application/json).
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: Chat
+  - name: Evaluation
+paths:
+  /api/v1/chat/session:
+    post:
+      tags: [Chat]
+      operationId: postNewChatSession
+      description: Issue a new conversation id (F-04). Does not clear server-side AutoMemory files.
+      responses:
+        '200':
+          description: New session id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewSessionResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/chat/messages:
+    post:
+      tags: [Chat]
+      operationId: postChatMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatMessageRequest'
+      responses:
+        '200':
+          description: Chat turn result (complete reply or AskUser pending)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatExchangeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/chat/questions/{ticketId}/answers:
+    post:
+      tags: [Chat]
+      operationId: postQuestionAnswer
+      parameters:
+        - name: ticketId
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 24
+            maxLength: 24
+            pattern: '^[0-9a-f]{24}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionAnswerRequest'
+      responses:
+        '200':
+          description: Chat turn result after resume
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatExchangeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/evaluation/run:
+    post:
+      tags: [Evaluation]
+      operationId: postEvaluationRun
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluationRunRequest'
+      responses:
+        '200':
+          description: Evaluation finished
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluationRunResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+components:
+  responses:
+    BadRequest:
+      description: Malformed request or failed bean validation
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    NotFound:
+      description: Resource not found (e.g. unknown AskUser ticket)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    UnprocessableEntity:
+      description: Semantically invalid input (e.g. blank required field)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    InternalServerError:
+      description: Unexpected server error
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+  schemas:
+    ApiError:
+      type: object
+      description: RFC 9457 Problem Details (subset)
+      required: [title, status]
+      properties:
+        type:
+          type: string
+          description: URI reference identifying the problem type
+        title:
+          type: string
+          description: Short summary of the problem type
+        status:
+          type: integer
+          description: HTTP status code
+        detail:
+          type: string
+          description: Explanation specific to this occurrence
+        instance:
+          type: string
+          description: URI reference for this occurrence
+    NewSessionResponse:
+      type: object
+      required: [sessionId]
+      properties:
+        sessionId:
+          type: string
+          minLength: 24
+          maxLength: 24
+          pattern: '^[0-9a-f]{24}$'
+    ChatMessageRequest:
+      type: object
+      required: [message]
+      properties:
+        sessionId:
+          type: string
+          minLength: 24
+          maxLength: 24
+          pattern: '^[0-9a-f]{24}$'
+          nullable: true
+        message:
+          type: string
+          minLength: 1
+          description: User message (non-blank)
+    ChatExchangeResponse:
+      type: object
+      required: [sessionId, status]
+      properties:
+        sessionId:
+          type: string
+          minLength: 24
+          maxLength: 24
+          pattern: '^[0-9a-f]{24}$'
+        status:
+          type: string
+          enum: [COMPLETE, ASK_USER]
+          description: COMPLETE or ASK_USER
+        reply:
+          type: string
+          nullable: true
+        modelName:
+          type: string
+          nullable: true
+        ticketId:
+          type: string
+          minLength: 24
+          maxLength: 24
+          pattern: '^[0-9a-f]{24}$'
+          nullable: true
+        prompt:
+          type: string
+          nullable: true
+        options:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/AskUserOption'
+    AskUserOption:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+    QuestionAnswerRequest:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          minLength: 24
+          maxLength: 24
+          pattern: '^[0-9a-f]{24}$'
+          nullable: true
+        selectedOptionIds:
+          type: array
+          items:
+            type: string
+        freeText:
+          type: string
+          nullable: true
+    EvaluationRunRequest:
+      type: object
+      required: [dataset]
+      properties:
+        dataset:
+          type: string
+          description: Dataset resource name e.g. meteoris-eval-v1
+        profile:
+          type: string
+          nullable: true
+          default: stub-ai
+    EvaluationRunResponse:
+      type: object
+      required: [runId, datasetId, datasetVersion, profile, passCount, failCount, reportJson]
+      properties:
+        runId:
+          type: string
+          minLength: 24
+          maxLength: 24
+          pattern: '^[0-9a-f]{24}$'
+        datasetId:
+          type: string
+        datasetVersion:
+          type: string
+        profile:
+          type: string
+        passCount:
+          type: integer
+        failCount:
+          type: integer
+        reportJson:
+          type: string
+          description: Full JSON report string
