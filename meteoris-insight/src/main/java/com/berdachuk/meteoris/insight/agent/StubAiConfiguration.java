@@ -1,6 +1,9 @@
 package com.berdachuk.meteoris.insight.agent;
 
 import java.util.List;
+
+import com.berdachuk.meteoris.insight.news.JdbcNewsArticleEmbeddingRepository;
+import com.berdachuk.meteoris.insight.news.NewsHeadlineEmbeddingEncoder;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatModel;
@@ -8,6 +11,7 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.document.Document;
+import org.springframework.ai.embedding.Embedding;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.embedding.EmbeddingRequest;
 import org.springframework.ai.embedding.EmbeddingResponse;
@@ -46,13 +50,11 @@ public class StubAiConfiguration {
         return new EmbeddingModel() {
             @Override
             public EmbeddingResponse call(EmbeddingRequest request) {
-                int dim = com.berdachuk.meteoris.insight.news.JdbcNewsArticleEmbeddingRepository.EMBEDDING_DIMENSION;
-                List<org.springframework.ai.embedding.Embedding> embeddings = request.getInstructions()
+                List<Embedding> embeddings = request.getInstructions()
                         .stream()
                         .map(text -> {
-                            float[] vec = com.berdachuk.meteoris.insight.news.NewsHeadlineEmbeddingEncoder
-                                    .deterministicEmbedding(text);
-                            return new org.springframework.ai.embedding.Embedding(vec, null);
+                            float[] vec = NewsHeadlineEmbeddingEncoder.deterministicEmbedding(text);
+                            return new Embedding(vec, null);
                         })
                         .toList();
                 return new EmbeddingResponse(embeddings);
@@ -60,13 +62,12 @@ public class StubAiConfiguration {
 
             @Override
             public int dimensions() {
-                return com.berdachuk.meteoris.insight.news.JdbcNewsArticleEmbeddingRepository.EMBEDDING_DIMENSION;
+                return JdbcNewsArticleEmbeddingRepository.EMBEDDING_DIMENSION;
             }
 
             @Override
             public float[] embed(Document document) {
-                return com.berdachuk.meteoris.insight.news.NewsHeadlineEmbeddingEncoder
-                        .deterministicEmbedding(document.getText());
+                return NewsHeadlineEmbeddingEncoder.deterministicEmbedding(document.getText());
             }
         };
     }

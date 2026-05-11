@@ -1,6 +1,5 @@
 package com.berdachuk.meteoris.insight.agent.api;
 
-import com.berdachuk.meteoris.insight.agent.api.ChatTurnResult;
 import java.util.List;
 
 /**

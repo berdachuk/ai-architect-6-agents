@@ -20,7 +20,7 @@ For **implementation and manual testing simplicity**, the product UI will be bui
 
 The **HTTP API** will follow an **API-first** workflow: a single canonical **OpenAPI 3** document (e.g. `meteoris-insight/api/openapi.yaml`) describes `/api/**` before implementation; the application build **generates** Spring server API interfaces and DTOs (e.g. via `openapi-generator-maven-plugin`); REST controllers **implement** those generated interfaces and delegate to orchestration. **`meteoris-insight-e2e`** generates its HTTP client from the **same** `openapi.yaml`, keeping provider and consumer in lockstep and simplifying black-box tests.
 
-Below is a vision and rough plan tailored to the stack (Java 21, Spring Boot 4.x, Spring AI 2.0.0‑M4+, Spring Modulith 2.0.5, PgVector 16, **Thymeleaf**, **OpenAPI / API-first**), aligned with the **Spring AI Agentic Patterns** blog series ([Part 1 — Agent Skills](https://spring.io/blog/2026/01/13/spring-ai-generic-agent-skills) through [Part 7 — Session API](https://spring.io/blog/2026/04/15/spring-ai-session-management)). Concrete dependency versions should follow the current `spring-ai-agent-utils`, `spring-ai-session`, and Spring AI BOMs when you implement.
+Below is a vision and rough plan tailored to the stack (Java 21, Spring Boot 4.x, Spring AI 2.0.0‑M6+, Spring Modulith 2.0.6, PgVector 16, **Thymeleaf**, **OpenAPI / API-first**), aligned with the **Spring AI Agentic Patterns** blog series ([Part 1 — Agent Skills](https://spring.io/blog/2026/01/13/spring-ai-generic-agent-skills) through [Part 7 — Session API](https://spring.io/blog/2026/04/15/spring-ai-session-management)). Concrete dependency versions should follow the current `spring-ai-agent-utils`, `spring-ai-session`, and Spring AI BOMs when you implement.
 
 ### LLM and embedding settings
 
@@ -172,7 +172,7 @@ Proposed module structure:
   - PgVector integration for caching news.
 
 - `app-memory`
-  - Session API: `SessionService` + JDBC starter, compaction trigger/strategy, optional `SessionEventTools`; AutoMemoryTools root directory and advisor ([Part 6](https://spring.io/blog/2026/04/07/spring-ai-agentic-patterns-6-memory-tools), [Part 7](https://spring.io/blog/2026/04/15/spring-ai-session-management)).
+  - Session API: `org.springframework.ai.session.SessionService` + `spring-ai-starter-session-jdbc`, compaction trigger/strategy on `SessionMemoryAdvisor`, optional `SessionEventTools`; AutoMemoryTools root directory and advisor ([Part 6](https://spring.io/blog/2026/04/07/spring-ai-agentic-patterns-6-memory-tools), [Part 7](https://spring.io/blog/2026/04/15/spring-ai-session-management)).
 
 - `app-eval`
   - Eval example model, evaluation service, CLI/REST endpoint to run evaluations.
@@ -270,7 +270,7 @@ If you want a safety criterion, you can also check that answers do not invent so
 A detailed **WBS** with work packages, dependencies, and exit criteria: **[IMPLEMENTATION-PLAN-WBS.md](IMPLEMENTATION-PLAN-WBS.md)**.
 
 1. **Project skeleton**
-    - Keep the **Maven reactor**: root `pom.xml` → `meteoris-insight` (application) + `meteoris-insight-e2e` (black-box tests). Evolve `meteoris-insight` into Spring Boot 4.0.5, Java 21, Modulith 2.0.5, Spring AI 2.0.0‑M4.
+    - Keep the **Maven reactor**: root `pom.xml` → `meteoris-insight` (application) + `meteoris-insight-e2e` (black-box tests). Evolve `meteoris-insight` into Spring Boot 4.0.6, Java 21, Modulith 2.0.6, Spring AI 2.0.0‑M6.
    - Add dependencies: `spring-ai-spring-boot-starter`, `spring-ai-agent-utils`, **Thymeleaf** (`spring-boot-starter-thymeleaf`), PgVector + Spring Data JDBC/JPA, MCP/A2A client libraries (Tools4AI). [dev](https://dev.to/vishalmysore/building-cross-protocol-ai-agents-with-spring-boot-a2a-and-mcp-server-guide-2d71)
    - Add **OpenAPI Generator** (or equivalent) so **`api/openapi.yaml`** drives generated server interfaces and models; wire **`meteoris-insight-e2e`** to generate its client from the same spec (**API-first** workflow).
    - Scaffold **Thymeleaf** pages for chat / weather / news smoke flows early (`templates/**`, MVC controllers) so **AskUserQuestionTool** and orchestration can be exercised without a SPA.

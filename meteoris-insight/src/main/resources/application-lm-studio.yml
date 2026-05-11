@@ -1,0 +1,14 @@
+# LM Studio local server (OpenAI-compatible API). Use with profile "lm-studio", e.g. docker-db,lm-studio.
+# Override base URL with LM_STUDIO_BASE_URL. Optional LM_STUDIO_API_KEY — if unset, the app sends a
+# placeholder key for Spring AI 2.x OpenAI client wiring; LM Studio typically ignores it.
+spring:
+  ai:
+    custom:
+      chat:
+        base-url: ${LM_STUDIO_BASE_URL:http://192.168.0.73:1234}
+        api-key: ${LM_STUDIO_API_KEY:}
+        model: ${METEORIS_CHAT_MODEL:google/gemma-4-26b-a4b}
+      embedding:
+        base-url: ${LM_STUDIO_BASE_URL:http://192.168.0.73:1234}
+        api-key: ${LM_STUDIO_API_KEY:}
+        model: ${METEORIS_EMBEDDING_MODEL:text-embedding-nomic-embed-text-v1.5@q8_0}

@@ -15,7 +15,7 @@ flowchart TB
     LLM["orchestratorChatClient<br/>(OpenAI-compatible)"]
     Weather["OpenMeteoWeatherIntegration<br/>(HTTP GET)"]
     News["KeylessNewsIntegration<br/>(HTTP GET)"]
-    PG["PostgreSQL + pgvector<br/>ChatMemory / Session / Embeddings"]
+    PG["PostgreSQL + pgvector<br/>Spring AI Session / Embeddings"]
     Eval["EvaluationService<br/>EvalScorer"]
 
     Client --> REST
@@ -46,7 +46,7 @@ The `spring.profiles.default` in `application.yml` is `docker-db`; the `stub-ai`
 
 1. **Client sends a message**: `POST /api/v1/chat/messages` via `ChatApiController.postChatMessage(ChatMessageRequest)`
 2. **Session resolution**: The controller reads `sessionId` from the request body, or falls back to `SessionCookieSupport.readOrCreate(request, response, idGenerator)` which mints a new 24-char hex ObjectId if no cookie exists
-3. **Session touched**: `SessionService.touch(sessionId)` updates `updated_at` in the `ai_session` table via `NamedParameterJdbcTemplate`
+3. **Session id for chat**: The same client `sessionId` (cookie or request body) is passed into the live orchestrator path as `SessionMemoryAdvisor.SESSION_ID_CONTEXT_KEY` so short-term history is keyed consistently; the advisor creates the backing Spring AI `Session` row on first use ([Part 7 — Session API](https://spring.io/blog/2026/04/15/spring-ai-session-management)).
 4. **Orchestration dispatch**: `ChatApiController` delegates to `ChatOrchestration.exchange(sessionId, rawMessage)`
 5. **Profile-dependent routing**:
    - **Live profile**: `OrchestrationService.exchange(...)` is invoked
@@ -122,13 +122,15 @@ sequenceDiagram
     participant orchestratorChatClient
     participant MethodToolCallbackProvider
     participant DelegationTools
-    participant ChatMemory
+    participant SessionMemoryAdvisor
+    participant PGSession as PostgreSQL session tables
 
     User->>ChatApiController: "What skills do you have?"
     ChatApiController->>OrchestrationService: exchange(sessionId, message)
     OrchestrationService->>OrchestrationService: no keyword match
-    OrchestrationService->>orchestratorChatClient: prompt().user(msg).call().content()
-    orchestratorChatClient->>ChatMemory: MessageChatMemoryAdvisor<br/>CONVERSATION_ID = sessionId:orch
+    OrchestrationService->>orchestratorChatClient: prompt().user(msg).advisors(SESSION_ID).call().content()
+    orchestratorChatClient->>SessionMemoryAdvisor: load/append events; compaction when triggered
+    SessionMemoryAdvisor->>PGSession: spring-ai-starter-session-jdbc
     orchestratorChatClient->>MethodToolCallbackProvider: tool registry<br/>(DelegationTools, SkillsTools, TodoWriteTools, AutoMemoryTools)
     MethodToolCallbackProvider->>DelegationTools: if model calls delegate_weather / delegate_news
     MethodToolCallbackProvider->>SkillsTools: if model calls list_skills / load_skill
@@ -206,14 +208,13 @@ This cache path is primarily exercised through direct `@Tool` invocation or in f
 
 ## Conversation memory and branching
 
-Chat memory is stored in PostgreSQL via Spring AI’s `JdbcChatMemoryRepository`. The key is a conversation id produced by `ConversationBranches`:
-- `orchestrator(sessionId)` → `"{sessionId}:orch"`
-- `weather(sessionId)` → `"{sessionId}:orch.weather"` (reserved)
-- `news(sessionId)` → `"{sessionId}:orch.news"` (reserved)
+Short-term chat history uses the **Spring AI Session** stack from **spring-ai-community** ([Part 7 — Session API](https://spring.io/blog/2026/04/15/spring-ai-session-management)):
 
-`OrchestrationService` sets `CONVERSATION_ID` to the orchestrator branch before every fallback LLM call. The `MessageChatMemoryAdvisor` (configured in `LiveAgentConfiguration`) appends the last N messages to the prompt automatically.
+- **Dependency**: `spring-ai-starter-session-jdbc` (BOM `spring-ai-session-bom` **0.2.0** in the parent POM), with `spring.ai.session.repository.jdbc.initialize-schema: never` because **Flyway** owns DDL (`V2__spring_ai_session_api.sql` aligns tables with the starter’s PostgreSQL script).
+- **Advisor**: `SessionMemoryAdvisor` is registered as a default advisor on `orchestratorChatClient` in `LiveAgentConfiguration`, with a **turn-count compaction trigger** and **sliding-window compaction strategy** (`maxEvents(40)`) comparable to the former `MessageWindowChatMemory` window.
+- **Per request**: `OrchestrationService` passes the client **`sessionId`** as `SessionMemoryAdvisor.SESSION_ID_CONTEXT_KEY` (not `ChatMemory.CONVERSATION_ID`). The advisor creates the session row automatically if it does not exist.
 
-Session metadata lives in the `ai_session` table (`id`, `conversation_id`, `created_at`, `updated_at`, `compacted_at`) and is managed by `SessionService` with `NamedParameterJdbcTemplate`.
+`ConversationBranches` (`sessionId:orch`, `sessionId:orch.weather`, `sessionId:orch.news`) remains available for **multi-agent branch labels** or `EventFilter.forBranch(...)` if future specialist `ChatClient`s need isolated event views; the current single-orchestrator path keys the Session API by the raw cookie `sessionId`.
 
 ## Evaluation pipeline
 
@@ -267,7 +268,7 @@ The dataset `eval/meteoris-eval-v1.yaml` contains:
 
 1. **Geocoding ambiguity**: Open-Meteo may return an unexpected city match (e.g., "Gomel" resolves to "Gomelle, Spain"). The evaluation scorer checks for the exact expected city substring, so ambiguous geocoding can produce a `missing_city` failure even though the upstream request succeeded.
 2. **Google News RSS intermittency**: Connection resets (`RestClientException`) have been observed on the first request; a retry usually succeeds. The integration returns an error message, not an exception, when this happens.
-3. **No JPA / Hibernate**: All application persistence uses `NamedParameterJdbcTemplate` (root `AGENTS.md` boundary). Spring AI’s own `JdbcChatMemoryRepository` is the only JDBC consumer outside Meteoris-owned code.
+3. **No JPA / Hibernate**: Meteoris-owned persistence uses `NamedParameterJdbcTemplate` (root `AGENTS.md` boundary). Short-term chat events are stored by **Spring AI Session JDBC** (`AI_SESSION`, `AI_SESSION_EVENT`) via the community starter, not by application JDBC code.
 4. **ObjectId identifiers**: `IdGenerator.generateId()` produces 24-char lowercase hex strings with embedded creation time; `extractCreationInstant(id)` decodes the leading 8 hex chars to a Unix-timestamp `Instant`.
 5. **Thymeleaf vs REST**: The canonical UI is Thymeleaf (`SiteController`), but the API-first OpenAPI layer (`ChatApiController`, `EvaluationApiController`) is fully functional and consumed by the E2E module.
 6. **LLM configuration**: `LiveAgentConfiguration` constructs `OpenAiChatModel` and `OpenAiEmbeddingModel` programmatically from `spring.ai.custom.chat.*` and `spring.ai.custom.embedding.*` properties, with `spring.ai.openai.enabled: false` and autoconfiguration exclusions. This avoids Spring AI’s default OpenAI beans while remaining compatible with Ollama and other OpenAI-compatible endpoints.
