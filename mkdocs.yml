@@ -78,6 +78,8 @@ nav:
   - PRD: PRD.md
   - Project Vision: VISION.md
   - Architecture: ARCHITECTURE.md
+  - GenAI security (red team lab): GENAI-SECURITY-REDTEAM-LAB.md
+  - LM Studio verification (2026-05-11): LM-STUDIO-REMOTE-VERIFICATION-2026-05-11.md
   - Implementation plan (WBS): IMPLEMENTATION-PLAN-WBS.md
   - Work scenarios: WORK-SCENARIOS.md
   - Use cases (catalogue): USE-CASES.md
