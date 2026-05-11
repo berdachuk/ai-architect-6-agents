@@ -74,6 +74,19 @@ public class EvaluationService {
                         reasons,
                         "answer_preview",
                         answer.length() > 240 ? answer.substring(0, 240) : answer));
+            } catch (RuntimeException ex) {
+                fail++;
+                String msg = ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage();
+                String preview = msg.length() > 240 ? msg.substring(0, 240) : msg;
+                rows.add(Map.of(
+                        "case_id",
+                        c.id(),
+                        "pass",
+                        false,
+                        "reason_codes",
+                        List.of("exception:" + ex.getClass().getSimpleName()),
+                        "answer_preview",
+                        preview));
             } finally {
                 todoStateStore.clear(sessionId);
             }

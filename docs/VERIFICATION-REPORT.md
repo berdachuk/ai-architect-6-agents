@@ -368,3 +368,323 @@ curl -s -X POST http://localhost:18443/api/v1/evaluation/run \
 - Response latency felt comparable; no functional regressions observed when switching models.
 
 **Overall:** All assignment requirements are satisfied by both `qwen3.5:cloud` and `gemma4:31b-cloud`.
+
+---
+
+## 8. Verification rerun (2026-05-11)
+
+**Date:** 2026-05-11  
+**Host:** Windows (Docker Engine via WSL backend; `docker-compose` CLI)  
+**Model used:** `gemma4:31b-cloud` (Ollama OpenAI-compatible endpoint)  
+**Embedding:** `nomic-embed-text:v1.5` (default in `application.yml`)  
+**Profiles:** `docker-db` (default active profile)  
+**App version:** `0.1.0-SNAPSHOT`  
+**Runtime:** Existing local process on `http://localhost:18443` (already running against Postgres).
+
+### 8.1 Build
+
+```bash
+mvn verify -DskipTests -q
+```
+
+| Check | Result |
+|---|---|
+| Reactor (`meteoris-insight` + `meteoris-insight-e2e`) | ✅ SUCCESS |
+| OpenAPI generation + compile | ✅ SUCCESS |
+
+### 8.2 Infrastructure
+
+```bash
+docker-compose up -d
+```
+
+| Check | Result |
+|---|---|
+| PostgreSQL 16 + pgvector | ✅ Container `meteoris-insight-pg` running |
+| Port | `localhost:27432` |
+
+### 8.3 Health
+
+```bash
+curl.exe -s http://localhost:18443/actuator/health
+```
+
+Aggregate **`status`** (root): **`UP`**. `meteoris` component: **`UP`** — chat model `gemma4:31b-cloud` and embedding model `nomic-embed-text:v1.5` both **UP** at `http://localhost:11434`; DB **UP**.
+
+### 8.4 Weather (Open-Meteo)
+
+Request: `POST /api/v1/chat/messages` with body `{"message":"What is the current weather in Brest, Belarus?"}` (JSON sent via `--data-binary @file` under Windows to avoid shell escaping issues).
+
+**Sample response (abridged):**
+
+```json
+{
+  "sessionId": "6a019ce57beaa4add164c968",
+  "status": "COMPLETE",
+  "modelName": "live",
+  "reply": "Weather in Brest, Belarus: 18.7°C, mainly clear to cloudy, observation time 2026-05-11T12:00 (Open-Meteo)."
+}
+```
+
+**Checks:** City, temperature, conditions, observation time, `Open-Meteo` citation — ✅ **PASS**
+
+### 8.5 News (Google News RSS, keyless)
+
+Request: `POST /api/v1/chat/messages` with `{"message":"Latest AI news"}`.
+
+**Sample response (abridged):** `COMPLETE`, digest prefix `News digest (general, Google News RSS, keyless):`, eight numbered headlines (e.g. Mashable, WHO, CBS News).
+
+**Checks:** Keyless RSS path, ≥3 headlines, source line — ✅ **PASS**
+
+### 8.6 Evaluation metric & dataset
+
+```bash
+curl.exe -s -X POST http://localhost:18443/api/v1/evaluation/run \
+  -H "Content-Type: application/json" \
+  -d "{\"dataset\":\"meteoris-eval-v1\",\"profile\":\"local\"}"
+```
+
+(Under PowerShell, prefer `curl.exe` … or `--data-binary @path\to\body.json` to avoid quoting issues.)
+
+**Response (abridged):**
+
+```json
+{
+  "runId": "6a019d174e68d45ee564c974",
+  "datasetId": "meteoris-eval",
+  "datasetVersion": "1.0.0",
+  "profile": "local",
+  "passCount": 10,
+  "failCount": 0
+}
+```
+
+**Metrics:** Weather `6/6`, News `4/4`, overall **`10/10`** — ✅ **PASS**
+
+### 8.7 Conclusion (this rerun)
+
+| Requirement | Status |
+|---|---|
+| Build (`mvn verify -DskipTests`) | ✅ Verified |
+| PostgreSQL + pgvector | ✅ Verified |
+| Health (`/actuator/health`) | ✅ Verified (aggregate UP) |
+| Weather via Open-Meteo | ✅ Verified |
+| News via keyless Google News RSS | ✅ Verified |
+| Evaluation dataset + metric | ✅ Verified (`10/10`) |
+| Live LLM + embeddings (Ollama) | ✅ Verified (`gemma4:31b-cloud` + `nomic-embed-text:v1.5`) |
+
+---
+
+## 9. Remote LAN Ollama (`192.168.0.73:11434`) + `gemma4:26b` (2026-05-11)
+
+**Date:** 2026-05-11  
+**Ollama (OpenAI-compatible):** `http://192.168.0.73:11434`  
+**Chat model:** `gemma4:26b`  
+**Embedding model:** `nomic-embed-text:v1.5` (same host)  
+**Spring profiles:** `docker-db`, **`remote-ollama`** (see `meteoris-insight/src/main/resources/application-remote-ollama.yml`)  
+**App:** `http://localhost:18443`  
+**App version:** `0.1.0-SNAPSHOT`
+
+### 9.1 Available models (`GET /v1/models`)
+
+```bash
+curl.exe -s "http://192.168.0.73:11434/v1/models"
+```
+
+The daemon returned **35** entries (OpenAI-style `data[].id`). Confirmed present for this run:
+
+| Role | Model id (on `192.168.0.73`) |
+|------|------------------------------|
+| Chat (used) | **`gemma4:26b`** |
+| Embeddings (used) | **`nomic-embed-text:v1.5`** |
+
+Other ids observed on the host (abridged list): `gemma4:31b`, `gemma4:31b-cloud`, `gemma4:e2b`, `gemma4:e4b`, `qwen3.5:cloud`, `qwen3-embedding:0.6b`, `qwen3-embedding:8b`, `nomic-embed-text:latest`, `deepseek-v4-pro:cloud`, `glm-5:cloud`, `minimax-m2.7:cloud`, … (full set from `v1/models` at verification time).
+
+**Override host without editing YAML:** set `OLLAMA_LAN_BASE_URL` (used for both chat and embedding base URLs in `remote-ollama` profile).
+
+### 9.2 Application start
+
+```bash
+docker-compose up -d
+mvn -pl meteoris-insight spring-boot:run -Dspring-boot.run.profiles=docker-db,remote-ollama
+```
+
+Boot log confirmed chat/embed **base-url** `http://192.168.0.73:11434`, models **`gemma4:26b`** / **`nomic-embed-text:v1.5`**, Tomcat **18443**.
+
+### 9.3 Build
+
+```bash
+mvn verify -DskipTests -q
+```
+
+| Check | Result |
+|---|---|
+| Reactor | ✅ SUCCESS |
+
+### 9.4 Health
+
+```bash
+curl.exe -s http://localhost:18443/actuator/health
+```
+
+Aggregate **`status`:** **`UP`**. `meteoris.activeProfiles`: **`docker-db`, `remote-ollama`**. Chat **`gemma4:26b`** and embedding **`nomic-embed-text:v1.5`** **UP** at `http://192.168.0.73:11434`.
+
+### 9.5 Weather (Open-Meteo)
+
+`POST /api/v1/chat/messages` — `{"message":"What is the current weather in Brest, Belarus?"}`
+
+```json
+{
+  "sessionId": "6a019dd7af6794d3d958a756",
+  "status": "COMPLETE",
+  "modelName": "live",
+  "reply": "Weather in Brest, Belarus: 18.4°C, mainly clear to cloudy, observation time 2026-05-11T12:00 (Open-Meteo)."
+}
+```
+
+**Result:** ✅ **PASS**
+
+### 9.6 News (Google News RSS, keyless)
+
+`POST /api/v1/chat/messages` — `{"message":"Latest AI news"}`
+
+**Result:** ✅ **PASS** — `COMPLETE`, digest line + **8** numbered headlines, `Google News RSS, keyless`.
+
+### 9.7 Evaluation
+
+`POST /api/v1/evaluation/run` — body `{"dataset":"meteoris-eval-v1","profile":"remote-ollama"}` (JSON via `--data-binary @file` recommended on Windows).
+
+```json
+{
+  "runId": "6a019e1fa28f82d31658a762",
+  "datasetId": "meteoris-eval",
+  "datasetVersion": "1.0.0",
+  "profile": "remote-ollama",
+  "passCount": 10,
+  "failCount": 0
+}
+```
+
+**Result:** ✅ **PASS** (`10/10`)
+
+### 9.8 Conclusion (remote Ollama)
+
+| Requirement | Status |
+|---|---|
+| LAN Ollama `v1/models` | ✅ Listed; **`gemma4:26b`** + **`nomic-embed-text:v1.5`** available |
+| Profile `remote-ollama` | ✅ Verified |
+| Health | ✅ UP |
+| Weather / news / eval | ✅ All PASS (`10/10`) |
+
+---
+
+## 10. LM Studio (`192.168.0.73:1234`) — Gemma + Nomic embeddings (2026-05-11)
+
+**Date:** 2026-05-11  
+**Server:** LM Studio OpenAI-compatible API — `http://192.168.0.73:1234`  
+**Chat model:** `google/gemma-4-26b-a4b`  
+**Embedding model:** `text-embedding-nomic-embed-text-v1.5@q8_0`  
+**Spring profiles:** `docker-db`, **`lm-studio`** (`meteoris-insight/src/main/resources/application-lm-studio.yml`)  
+**App:** `http://localhost:18443`  
+**App version:** `0.1.0-SNAPSHOT`
+
+### 10.1 Available models (`GET /v1/models`)
+
+```bash
+curl.exe -s "http://192.168.0.73:1234/v1/models"
+```
+
+**Models returned** (at verification time), `data[].id`:
+
+| id |
+|----|
+| `text-embedding-nomic-embed-text-v1.5@q8_0` |
+| `google/gemma-4-26b-a4b` |
+| `gemma-4-26b-a4b-it-assistant` |
+| `gemma-4-e4b-it-assistant` |
+| `qwen/qwen3.6-27b` |
+| `google/gemma-4-31b` |
+| `google/gemma-4-e4b` |
+| `gemma-4-31b-it-assistant` |
+| `qwen/qwen3.5-9b` |
+| `text-embedding-nomic-embed-text-v1.5@q4_k_m` |
+
+**Overrides:** `LM_STUDIO_BASE_URL` (chat + embed base URL), `LM_STUDIO_API_KEY` (if the server requires a key), `METEORIS_CHAT_MODEL`, `METEORIS_EMBEDDING_MODEL`.
+
+### 10.2 Application start
+
+```bash
+docker-compose up -d
+mvn -pl meteoris-insight spring-boot:run -Dspring-boot.run.profiles=docker-db,lm-studio
+```
+
+Boot log: active profiles **`docker-db`, `lm-studio`**; chat **`http://192.168.0.73:1234`**, model **`google/gemma-4-26b-a4b`**; embed same host, model **`text-embedding-nomic-embed-text-v1.5@q8_0`**.
+
+### 10.3 Build
+
+```bash
+mvn verify -DskipTests -q
+```
+
+| Check | Result |
+|---|---|
+| Reactor | ✅ SUCCESS |
+
+### 10.4 Health
+
+```bash
+curl.exe -s http://localhost:18443/actuator/health
+```
+
+**Retest (2026-05-11):** aggregate root **`status`:** **`DOWN`** (HTTP **503** when the aggregate is down). **`db`** **UP**. Custom **`meteoris`** component **DOWN** because the **embedding** probe fails with **`OpenAIInvalidDataException`:** `` `data` is not set `` — LM Studio’s **`/v1/embeddings`** payload shape does not match what Spring AI’s OpenAI client expects, even though direct chat calls work. **`chatModel`** in the same payload is **UP** at `http://192.168.0.73:1234` with **`google/gemma-4-26b-a4b`**.
+
+**Earlier run (same section, first draft):** aggregate was recorded as **UP**; treat **chat + DB + weather/news/eval** as the functional bar for **`lm-studio`** until embeddings compatibility or the health probe is adjusted.
+
+### 10.5 Weather (Open-Meteo)
+
+`POST /api/v1/chat/messages` — `{"message":"What is the current weather in Brest, Belarus?"}`
+
+```json
+{
+  "sessionId": "6a01a099f7e34a98eda84581",
+  "status": "COMPLETE",
+  "modelName": "live",
+  "reply": "Weather in Brest, Belarus: 18.8°C, mainly clear to cloudy, observation time 2026-05-11T12:15 (Open-Meteo)."
+}
+```
+
+**Result:** ✅ **PASS**
+
+### 10.6 News (Google News RSS, keyless)
+
+`POST /api/v1/chat/messages` — `{"message":"Latest AI news"}`
+
+**Result:** ✅ **PASS** — `COMPLETE`, **8** headlines, `Google News RSS, keyless`.
+
+### 10.7 Evaluation
+
+`POST /api/v1/evaluation/run` — `{"dataset":"meteoris-eval-v1","profile":"lm-studio"}` (JSON via `--data-binary @file` on Windows).
+
+```json
+{
+  "runId": "6a01a0b502755219d7a8458d",
+  "datasetId": "meteoris-eval",
+  "datasetVersion": "1.0.0",
+  "profile": "lm-studio",
+  "passCount": 10,
+  "failCount": 0
+}
+```
+
+**Result:** ✅ **PASS** (`10/10`)
+
+### 10.8 Conclusion (LM Studio)
+
+| Requirement | Status |
+|---|---|
+| LM Studio `v1/models` on `:1234` | ✅ Listed; requested chat + embedding ids present |
+| Profile `lm-studio` | ✅ Verified |
+| Health (aggregate) | ⚠️ **DOWN** on retest — embedding probe fails; **chat** path **UP** in `meteoris` details |
+| Weather / news / eval | ✅ All PASS (`10/10`) |
+
+**Canonical automated check:** `mvn verify` from repo root (stub AI + Testcontainers + E2E) — **BUILD SUCCESS** on retest **2026-05-11**.

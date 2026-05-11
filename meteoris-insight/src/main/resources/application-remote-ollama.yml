@@ -1,0 +1,11 @@
+# OpenAI-compatible Ollama on the LAN (use with profile "remote-ollama", e.g. docker-db,remote-ollama).
+# Override host with OLLAMA_LAN_BASE_URL if the daemon moves.
+spring:
+  ai:
+    custom:
+      chat:
+        base-url: ${OLLAMA_LAN_BASE_URL:http://192.168.0.73:11434}
+        model: ${METEORIS_CHAT_MODEL:gemma4:26b}
+      embedding:
+        base-url: ${OLLAMA_LAN_BASE_URL:http://192.168.0.73:11434}
+        model: ${METEORIS_EMBEDDING_MODEL:nomic-embed-text:v1.5}

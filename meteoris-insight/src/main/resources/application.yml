@@ -11,11 +11,10 @@ spring:
       enabled: false
       # Satisfies Spring AI optional OpenAI autoconfiguration beans in CI (never used with stub-ai).
       api-key: ${OPENAI_API_KEY:local-dev-placeholder}
-    chat:
-      memory:
-        repository:
-          jdbc:
-            initialize-schema: never
+    session:
+      repository:
+        jdbc:
+          initialize-schema: never
     custom:
       chat:
         # Default: local Ollama OpenAI-compatible API. Override with METEORIS_CHAT_BASE_URL or shared OLLAMA_BASE_URL.
@@ -28,10 +27,11 @@ spring:
       embedding:
         base-url: ${METEORIS_EMBEDDING_BASE_URL:${OLLAMA_BASE_URL:http://localhost:11434}}
         api-key: ${METEORIS_EMBEDDING_API_KEY:}
-        model: ${METEORIS_EMBEDDING_MODEL:nomic-embed-text}
+        model: ${METEORIS_EMBEDDING_MODEL:nomic-embed-text:v1.5}
         dimensions: ${METEORIS_EMBEDDING_DIMENSIONS:768}
   autoconfigure:
     exclude:
+      - org.springframework.ai.model.chat.memory.autoconfigure.ChatMemoryAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiImageAutoConfiguration

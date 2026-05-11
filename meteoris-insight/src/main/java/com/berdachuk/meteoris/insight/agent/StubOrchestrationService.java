@@ -2,12 +2,10 @@ package com.berdachuk.meteoris.insight.agent;
 
 import com.berdachuk.meteoris.insight.agent.api.ChatOrchestration;
 import com.berdachuk.meteoris.insight.agent.api.ChatTurnResult;
-import com.berdachuk.meteoris.insight.memory.SessionService;
 import com.berdachuk.meteoris.insight.news.api.NewsDigestApi;
 import com.berdachuk.meteoris.insight.weather.api.WeatherForecastApi;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -23,7 +21,7 @@ import org.springframework.stereotype.Service;
 public class StubOrchestrationService implements ChatOrchestration {
 
     private static final Pattern WEATHER_CITY =
-            Pattern.compile("(?i)weather.*\\bin\\s+([A-Za-z][A-Za-z\\s,-]{0,40})");
+            Pattern.compile("(?i)(?:weather|forecast|conditions).*(?:in|for)\\s+([A-Za-z][A-Za-z\\s,-]{0,40})");
 
     private final WeatherForecastApi weatherIntegration;
     private final NewsDigestApi newsIntegration;
@@ -55,14 +53,16 @@ public class StubOrchestrationService implements ChatOrchestration {
                             new ChatTurnResult.AskUserOptionView("brest", "Brest"),
                             new ChatTurnResult.AskUserOptionView("minsk", "Minsk")));
         }
-        if (lower.contains("weather")) {
+        if (lower.contains("weather")
+                || lower.contains("forecast")
+                || (lower.contains("conditions") && lower.contains(" in ") && !lower.contains("news"))) {
             Matcher m = WEATHER_CITY.matcher(msg);
             String city = m.find() ? m.group(1).replace(',', ' ').trim() : "Brest";
             String reply = weatherIntegration.forecast(city);
             return new ChatTurnResult(
                     sessionId, ChatTurnResult.Status.COMPLETE, reply, "stub-ai", null, null, null);
         }
-        if (lower.contains("news")) {
+        if (lower.contains("news") || lower.contains("headlines")) {
             String topic = "general";
             int about = lower.indexOf("about");
             if (about >= 0 && about + 5 < msg.length()) {

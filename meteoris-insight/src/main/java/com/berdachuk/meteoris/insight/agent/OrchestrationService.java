@@ -2,7 +2,6 @@ package com.berdachuk.meteoris.insight.agent;
 
 import com.berdachuk.meteoris.insight.agent.api.ChatOrchestration;
 import com.berdachuk.meteoris.insight.agent.api.ChatTurnResult;
-import com.berdachuk.meteoris.insight.memory.SessionService;
 import com.berdachuk.meteoris.insight.news.api.NewsDigestApi;
 import com.berdachuk.meteoris.insight.weather.api.WeatherForecastApi;
 import java.util.List;
@@ -11,9 +10,7 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.messages.AssistantMessage;
-import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.session.advisor.SessionMemoryAdvisor;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -25,39 +22,34 @@ public class OrchestrationService implements ChatOrchestration {
     private final WeatherForecastApi weatherIntegration;
     private final NewsDigestApi newsIntegration;
     private final Optional<ChatClient> liveChatClient;
-    private final ChatMemory chatMemory;
     private final QuestionHub questionHub;
-    private final SessionService sessionService;
 
     public OrchestrationService(
             WeatherForecastApi weatherIntegration,
             NewsDigestApi newsIntegration,
             Optional<ChatClient> liveChatClient,
-            ChatMemory chatMemory,
-            QuestionHub questionHub,
-            SessionService sessionService) {
+            QuestionHub questionHub) {
         this.weatherIntegration = weatherIntegration;
         this.newsIntegration = newsIntegration;
         this.liveChatClient = liveChatClient;
-        this.chatMemory = chatMemory;
         this.questionHub = questionHub;
-        this.sessionService = sessionService;
     }
 
     @Override
     public ChatTurnResult exchange(String sessionId, String userMessage) {
-        sessionService.touch(sessionId);
         String msg = userMessage == null ? "" : userMessage.trim();
         String lower = msg.toLowerCase(Locale.ROOT);
 
         // Direct routing for weather and news to avoid relying on model tool-calling reliability.
-        if (lower.contains("weather")) {
+        if (lower.contains("weather")
+                || lower.contains("forecast")
+                || (lower.contains("conditions") && lower.contains(" in ") && !lower.contains("news"))) {
             String city = extractCity(msg);
             String reply = weatherIntegration.forecast(city);
             return new ChatTurnResult(
                     sessionId, ChatTurnResult.Status.COMPLETE, reply, "live", null, null, null);
         }
-        if (lower.contains("news")) {
+        if (lower.contains("news") || lower.contains("headlines")) {
             String topic = extractTopic(msg);
             String reply = newsIntegration.latestHeadlines(topic);
             return new ChatTurnResult(
@@ -70,8 +62,7 @@ public class OrchestrationService implements ChatOrchestration {
         try {
             String reply = client.prompt()
                     .user(userMessage)
-                    .advisors(a ->
-                            a.param(ChatMemory.CONVERSATION_ID, ConversationBranches.orchestrator(sessionId)))
+                    .advisors(a -> a.param(SessionMemoryAdvisor.SESSION_ID_CONTEXT_KEY, sessionId))
                     .call()
                     .content();
             return new ChatTurnResult(
@@ -84,7 +75,6 @@ public class OrchestrationService implements ChatOrchestration {
     @Override
     public ChatTurnResult resumeAnswer(
             String sessionId, String ticketId, List<String> selectedOptionIds, String freeText) {
-        sessionService.touch(sessionId);
         StringBuilder answer = new StringBuilder();
         if (selectedOptionIds != null && !selectedOptionIds.isEmpty()) {
             answer.append(String.join(", ", selectedOptionIds));
@@ -108,8 +98,7 @@ public class OrchestrationService implements ChatOrchestration {
                             + " with: "
                             + answer
                             + ". Continue the task.")
-                    .advisors(a ->
-                            a.param(ChatMemory.CONVERSATION_ID, ConversationBranches.orchestrator(sessionId)))
+                    .advisors(a -> a.param(SessionMemoryAdvisor.SESSION_ID_CONTEXT_KEY, sessionId))
                     .call()
                     .content();
             return new ChatTurnResult(
@@ -138,11 +127,5 @@ public class OrchestrationService implements ChatOrchestration {
         if (lower.contains("space")) return "space";
         if (lower.contains("technology") || lower.contains("tech")) return "technology";
         return "general";
-    }
-
-    private void appendMemory(String sessionId, String userLine, String assistantLine) {
-        chatMemory.add(
-                ConversationBranches.orchestrator(sessionId),
-                List.of(new UserMessage(userLine), new AssistantMessage(assistantLine)));
     }
 }

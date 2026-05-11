@@ -1,6 +1,6 @@
 # Meteoris Insight
 
-Agentic Spring Boot service: weather + news orchestration, MCP integrations, JDBC session memory, Thymeleaf UI, OpenAPI-first REST, and a reproducible evaluation runner.
+Agentic Spring Boot service: weather + news orchestration, MCP integrations, **Spring AI Session** short-term memory (JDBC, [Part 7](https://spring.io/blog/2026/04/15/spring-ai-session-management)), Thymeleaf UI, OpenAPI-first REST, and a reproducible evaluation runner.
 
 ## Build
 
@@ -68,7 +68,34 @@ With **`local`** (and **without** `stub-ai`), the app uses:
 - **Weather:** public [Open-Meteo](https://open-meteo.com/) HTTP APIs (geocoding + forecast) — same data family as Open-Meteo MCP servers, without running a separate MCP process.
 - **News:** [Google News RSS](https://news.google.com/) search feed (keyless).
 
-The orchestrator delegates to **weather** and **news specialist** `ChatClient` instances via `delegate_weather` / `delegate_news` tools. Additional tools: **`list_skills` / `load_skill`** (classpath `skills/*/SKILL.md`), **`todo_write` / `todo_list`**, and **`automemory_append` / `automemory_read`** (files under `meteoris.automemory.root`).
+The orchestrator calls **`delegate_weather`** / **`delegate_news`** tools, which invoke the weather and news integrations **directly** (no nested specialist `ChatClient`). Additional tools: **`list_skills` / `load_skill`** (classpath `skills/*/SKILL.md`), **`todo_write` / `todo_list`**, and **`automemory_append` / `automemory_read`** (files under `meteoris.automemory.root`).
+
+## Windows and WSL
+
+### Docker engine and CLI
+
+With **Docker Desktop for Windows**, the engine usually runs inside **WSL2**, while the **`docker`** / **`docker-compose`** clients on **PowerShell** or **cmd** still talk to that daemon. Published ports (for example **`localhost:27432`** for Postgres) are reachable from **Maven and the JVM on Windows** the same way as on Linux.
+
+If **`docker compose`** fails with *`compose` is not a docker command*, use the standalone **`docker-compose`** binary (Compose V2) against the same engine — both are common on Windows.
+
+If the Docker CLI is **only installed inside a distro** and not on Windows, run **`docker compose`**, **`mvn verify`**, and **`spring-boot:run`** from a **WSL shell** in the repo (for a tree on `C:\`, use **`/mnt/c/.../ai-architect-6-agents`**), or install **Docker Desktop** and enable **Settings → Resources → WSL integration** for your distro so `docker` works there too.
+
+### Paths and performance
+
+A clone under **`/mnt/c/...`** in WSL works but can be **slower** than a repo stored on the Linux filesystem (for example **`~/projects/ai-architect-6-agents`**).
+
+### Environment variables
+
+Examples in this README use **Unix-style** `export NAME=value`. In **PowerShell** use:
+
+```powershell
+$env:METEORIS_DB_PASSWORD = "secret"
+$env:OPENAI_API_KEY = "sk-..."
+```
+
+### Testcontainers
+
+**`mvn verify`** still requires a **Docker** daemon visible from the environment where Maven runs (Windows or WSL). No extra WSL-only configuration is required beyond a working Docker setup for that shell.
 
 ## Evaluation
 

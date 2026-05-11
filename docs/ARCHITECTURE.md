@@ -89,7 +89,7 @@ flowchart LR
 | Language | **Java 21** | |
 | Runtime | **Spring Boot 4.x** | Exact BOM TBD at scaffold time |
 | Modularity | **Spring Modulith** | Logical modules `app-*` inside one JAR |
-| Generative AI | **Spring AI** 2.x (**M4+** per vision) + **spring-ai-agent-utils** | SkillsTool, AskUserQuestionTool, TodoWriteTool, Task tool |
+| Generative AI | **Spring AI** 2.x (**M6+** per vision) + **spring-ai-agent-utils** | SkillsTool, AskUserQuestionTool, TodoWriteTool, Task tool |
 | LLM integration | **`spring-ai-starter-model-openai`**, explicit `OpenAiApi` / `OpenAiChatModel` beans | **`spring.ai.custom.chat.*`**, `spring.ai.openai.enabled: false`, `@Primary` `ChatModel` + `ChatClient`; see [PRD.md](PRD.md) **NFR-8**. |
 | Embeddings (optional) | **`OpenAiEmbeddingModel`** from **`spring.ai.custom.embedding.*`** | Only if pgvector / semantic news is implemented; same property pattern as chat. |
 | Session memory | **spring-ai-session** (community) + **JDBC starter** | `AI_SESSION`, `AI_SESSION_EVENT`; compaction advisors |
@@ -147,7 +147,7 @@ flowchart TB
   end
 
   subgraph Data["Data & memory"]
-    SE[SessionService + JDBC]
+    SE[Spring AI Session JDBC]
     AM[AutoMemory directory]
     VS[VectorStore pgvector]
   end
@@ -185,7 +185,7 @@ Packages are grouped under a root such as `com.berdachuk.meteoris.insight` (exac
 | **`app-agent-core`** | Orchestrator `ChatClient` **beans**, system prompts, **TaskToolCallbackProvider**, registration of SkillsTool / AskUser / Todo / advisors | Small `*.api` facade types if other modules must trigger chat | → `app-core`; → `app-weather-agent.api`, `app-news-agent.api`, `app-memory.api` (conceptually) |
 | **`app-weather-agent`** | `weather-skill` assets; **WeatherMcpTool**; optional dedicated `ChatClient` for subagent | `WeatherResult`-style API types | MCP client libs; → `app-core` for ids if persisting rows |
 | **`app-news-agent`** | `news-skill`; **NewsMcpTool**; vector ingest/search for news cache | `NewsItem` / search API types | MCP + JDBC/pgvector; → `app-core` |
-| **`app-memory`** | **SessionService** wiring, Flyway for session tables if not auto; **AutoMemory** root configuration | `MemorySessionSupport` facade (example) | Spring JDBC, session starter; → `app-core` |
+| **`app-memory`** | **AutoMemory** root, **TodoStateStore**; Spring AI Session JDBC is auto-configured from `spring-ai-starter-session-jdbc` with Flyway for `AI_SESSION` / `AI_SESSION_EVENT` | `MemorySessionSupport` facade (example) | Spring JDBC (Meteoris-owned rows), community session starter; → `app-core` |
 | **`app-eval`** | YAML/JSON eval sets, **EvaluationRunner**, metric reporters, optional REST to trigger runs | Eval report DTOs | → orchestration facade (or HTTP self-call in test mode); → `app-core` |
 
 ### 6.2 Allowed dependency philosophy

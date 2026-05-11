@@ -1,8 +1,9 @@
 package com.berdachuk.meteoris.insight.agent;
 
 /**
- * JDBC chat memory conversation ids: {@code <sessionId>:orch}, {@code <sessionId>:orch.weather}, etc.
- * Aligns with WBS 3.2 branch isolation for orchestrator vs specialist paths.
+ * Conversation branch qualifiers for multi-agent routing ({@code <sessionId>:orch}, etc.).
+ * Short-term history uses Spring AI Session with the client {@code sessionId}; branch suffixes remain
+ * available for specialist paths or {@code EventFilter}-based isolation when needed.
  */
 public final class ConversationBranches {
 

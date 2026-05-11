@@ -3,6 +3,9 @@ package com.berdachuk.meteoris.insight.memory;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.session.CreateSessionRequest;
+import org.springframework.ai.session.SessionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -24,20 +27,16 @@ class SessionServiceTest {
     SessionService sessionService;
 
     @Test
-    void crudLifecycle() {
-        SessionService.Session s = sessionService.createSession("conv-1");
-        assertThat(s.id()).hasSize(24);
-        assertThat(s.conversationId()).isEqualTo("conv-1");
+    void appendMessagesAndDeleteRoundTrip() {
+        var session = sessionService.create(CreateSessionRequest.builder().userId("test-user").build());
+        String id = session.id();
 
-        assertThat(sessionService.findById(s.id())).isPresent();
-        sessionService.touch(s.id());
-        sessionService.recordCompaction(s.id());
+        sessionService.appendMessage(id, new UserMessage("hello"));
 
-        SessionService.Session updated = sessionService.findById(s.id()).orElseThrow();
-        assertThat(updated.updatedAt()).isAfter(s.updatedAt());
-        assertThat(updated.compactedAt()).isPresent();
+        assertThat(sessionService.getMessages(id)).hasSize(1);
 
-        sessionService.delete(s.id());
-        assertThat(sessionService.findById(s.id())).isEmpty();
+        sessionService.delete(id);
+
+        assertThat(sessionService.findById(id)).isNull();
     }
 }

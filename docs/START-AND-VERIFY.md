@@ -302,15 +302,14 @@ The result page shows the full JSON report with per-case pass/fail breakdown.
 PGPASSWORD=meteoris psql -h localhost -p 27432 -U meteoris -d meteoris -c '\dt'
 ```
 
-Expected tables (Flyway migrations V1–V3 + pgvector):
+Expected tables (Flyway migrations **V1–V2** + pgvector extension). **`SPRING_AI_CHAT_MEMORY`** was removed in **V2** in favour of Spring AI Session (`AI_SESSION`, `AI_SESSION_EVENT`).
 
-| Table | Owner |
-|-------|-------|
-| `ai_session` | meteoris |
-| `ai_session_event` | meteoris |
-| `spring_ai_chat_memory` | meteoris |
-| `news_article_embedding` | meteoris |
-| `flyway_schema_history` | meteoris |
+| Table | Notes |
+|-------|--------|
+| `ai_session` | Spring AI Session — session metadata (`user_id`, `expires_at`, `metadata`, `event_version`, …) |
+| `ai_session_event` | Spring AI Session — append-only event log |
+| `news_article_embedding` | Meteoris news embedding cache (pgvector) |
+| `flyway_schema_history` | Flyway |
 
 ---
 

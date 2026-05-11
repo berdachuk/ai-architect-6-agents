@@ -30,10 +30,10 @@ mvn verify
 |-------|--------------|
 | Compiles and packages | `BUILD SUCCESS` |
 | Modulith structure | `ModulithStructureTest` passes (enforced module boundaries) |
-| Database migrations | Flyway V1–V3 applied on Testcontainers `pgvector/pgvector:pg16` |
+| Database migrations | Flyway **V1–V2** applied on Testcontainers `pgvector/pgvector:pg16` |
 | Weather tool | `StubAiConfiguration` + `WeatherToolsTest` (stub path) |
 | News tool | `StubAiConfiguration` + `NewsToolsTest` (stub path) |
-| Session memory | `SessionServiceTest` — JDBC session table round-trip |
+| Session API (JDBC) | `SessionServiceTest` — round-trip on `org.springframework.ai.session.SessionService` (`AI_SESSION` / `AI_SESSION_EVENT`) |
 | Evaluation runner | `EvalCliIT` runs through `meteoris-eval-v1.yaml` (stub profile) |
 | Evaluation module | `EvaluationModuleTest` — 10 eval cases via stub orchestration |
 | E2E API contract | `MeteorisInsightE2EIT` — health, chat session, weather flow, eval run, 422 error |
@@ -295,12 +295,12 @@ meteoris-insight/src/main/java/com/berdachuk/meteoris/insight/
 ├── agent/               # Orchestrator + stub/live configuration
 ├── api/                 # REST controllers (OpenAPI-first)
 ├── evaluation/          # EvalDataset, EvalScorer, EvaluationService
-├── memory/              # Session, AutoMemory, TodoStateStore
+├── memory/              # AutoMemory, TodoStateStore; Spring AI Session JDBC is starter auto-config
 ├── news/                # Keyless news integration (Google News RSS)
 ├── weather/             # Open-Meteo HTTP integration
 meteoris-insight/src/main/resources/
 ├── eval/meteoris-eval-v1.yaml   # Evaluation dataset
-├── db/migration/        # Flyway V1–V3
+├── db/migration/        # Flyway V1–V2
 meteoris-insight/api/
 ├── openapi.yaml         # Canonical OpenAPI contract
 ```
