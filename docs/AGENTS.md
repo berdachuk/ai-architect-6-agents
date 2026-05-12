@@ -7,6 +7,8 @@ Purpose: keep **product requirements**, **product vision**, **agentic architectu
 - `PRD.md` — normative FR/NFR, API expectations, milestones, deliverables.
 - `VISION.md` — assignment alignment + technical vision (Spring AI Parts 1–7, modules, eval).
 - `ARCHITECTURE.md` — detailed engineering architecture (Modulith, data, MCP, agents, API, testing).
+- `GENAI-SECURITY-REDTEAM-LAB.md` — OWASP GenAI red teaming practical (prompt injection + error disclosure labs, JUnit evidence).
+- `LM-STUDIO-REMOTE-VERIFICATION-2026-05-11.md` — dated LM Studio remote verification (`mvn verify` + `docker-db`,`lm-studio` smoke).
 - `USE-CASES.md` — all use case IDs in one catalogue.
 - `USER-STORIES.md` — agile backlog `US-xx`.
 - `FORMS-AND-FLOWS.md` — Thymeleaf forms, routes, REST parallels, E2E workflow narratives, Mermaid diagrams.
